@@ -1,0 +1,243 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | Bloomé</title>
+        <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="style.css">
+   
+</head>
+<body class="checkout-page">
+
+<header class="checkout-header">
+    <a href="index.html" class="logo">Bloomé</a>
+    <a href="index.html#products">← Continue Shopping</a>
+</header>
+
+<main class="checkout-main">
+    <p class="section-subtitle">A LITTLE BOX OF HAPPINESS</p>
+    <h1>Your Checkout</h1>
+    <p class="checkout-subtitle">
+        Review your flowers and complete your delivery details.
+    </p>
+
+    <div class="checkout-layout">
+
+        <section class="checkout-panel">
+            <h2>Your Flower Cart</h2>
+            <div id="cart-items"></div>
+        </section>
+
+        <section class="checkout-panel">
+            <h2>Delivery Details</h2>
+
+            <form id="checkout-form" class="checkout-form">
+                <label for="customer-name">Full Name</label>
+                <input id="customer-name" name="customerName"
+                       type="text" required placeholder="Your full name">
+
+                <label for="customer-phone">Phone Number</label>
+                <input id="customer-phone" name="phone"
+                       type="tel" required placeholder="08xxxxxxxxxx">
+
+                <label for="customer-address">Delivery Address</label>
+                <textarea id="customer-address" name="address"
+                          rows="3" required
+                          placeholder="Enter your delivery address"></textarea>
+
+                <label for="payment-method">Payment Method</label>
+                <select id="payment-method" name="payment" required>
+                    <option value="">Choose payment method</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="E-Wallet">E-Wallet</option>
+                    <option value="COD">Cash on Delivery (COD)</option>
+                </select>
+
+                <label for="order-notes">Order Notes (Optional)</label>
+                <textarea id="order-notes" name="notes" rows="2"
+                          placeholder="Any special requests?"></textarea>
+
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <strong id="subtotal">Rp0</strong>
+                </div>
+
+                <div class="summary-row">
+                    <span>Delivery Fee</span>
+                    <span>Confirmed by seller</span>
+                </div>
+
+                <div class="summary-row summary-total">
+                    <span>Total Flowers</span>
+                    <strong id="total">Rp0</strong>
+                </div>
+
+                <button type="submit" class="checkout-submit">
+                    Complete Your Order 
+                </button>
+
+                <p class="checkout-note">
+                    Thank you for letting our little blooms be part of your story. This is a demo checkout; no real payment will be made.
+                </p>
+
+                <p id="order-feedback" aria-live="polite"></p>
+            </form>
+        </section>
+
+    </div>
+</main>
+
+<script>
+const CART_KEY = "bloomeCart";
+
+function getCart() {
+    try {
+        return JSON.parse(localStorage.getItem(CART_KEY)) || [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function rupiah(value) {
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0
+    }).format(value);
+}
+
+function renderCart() {
+    const cart = getCart();
+    const container = document.getElementById("cart-items");
+
+    const subtotal = cart.reduce(
+        (sum, item) => sum + item.price * item.quantity, 0
+    );
+
+    if (cart.length === 0) {
+        container.innerHTML = `
+            <p class="cart-empty">
+                Your cart is empty.
+                <a href="index.html#products">Choose your flowers here.</a>
+            </p>
+        `;
+    } else {
+        container.innerHTML = "";
+
+        cart.forEach((item, index) => {
+            const article = document.createElement("article");
+            article.className = "cart-item";
+
+            const image = document.createElement("img");
+            image.src = item.image;
+            image.alt = item.name;
+
+            const details = document.createElement("div");
+
+            const title = document.createElement("h3");
+            title.textContent = item.name;
+
+            const price = document.createElement("p");
+            price.className = "item-price";
+            price.textContent = rupiah(item.price * item.quantity);
+
+            const controls = document.createElement("div");
+            controls.className = "quantity-controls";
+
+            const minus = document.createElement("button");
+            minus.type = "button";
+            minus.textContent = "−";
+            minus.dataset.action = "decrease";
+            minus.dataset.index = index;
+            minus.setAttribute("aria-label", "Decrease quantity");
+
+            const quantity = document.createElement("span");
+            quantity.textContent = item.quantity;
+
+            const plus = document.createElement("button");
+            plus.type = "button";
+            plus.textContent = "+";
+            plus.dataset.action = "increase";
+            plus.dataset.index = index;
+            plus.setAttribute("aria-label", "Increase quantity");
+
+            controls.append(minus, quantity, plus);
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "remove-item";
+            remove.textContent = "Remove";
+            remove.dataset.action = "remove";
+            remove.dataset.index = index;
+
+            details.append(title, price, controls, remove);
+            article.append(image, details);
+            container.appendChild(article);
+        });
+    }
+
+    document.getElementById("subtotal").textContent = rupiah(subtotal);
+    document.getElementById("total").textContent = rupiah(subtotal);
+
+    document.querySelector(".checkout-submit").disabled =
+        cart.length === 0;
+}
+
+document.getElementById("cart-items").addEventListener(
+    "click", function(event) {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+
+        const cart = getCart();
+        const index = Number(button.dataset.index);
+
+        if (!cart[index]) return;
+
+        if (button.dataset.action === "increase") {
+            cart[index].quantity++;
+        } else if (button.dataset.action === "decrease") {
+            cart[index].quantity--;
+        } else if (button.dataset.action === "remove") {
+            cart.splice(index, 1);
+        }
+
+        if (cart[index] && cart[index].quantity <= 0) {
+            cart.splice(index, 1);
+        }
+
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        renderCart();
+    }
+);
+
+document.getElementById("checkout-form").addEventListener(
+    "submit", function(event) {
+        event.preventDefault();
+
+        const cart = getCart();
+        if (cart.length === 0) return;
+
+        const formData = new FormData(this);
+        const name = formData.get("customerName");
+
+        const total = cart.reduce(
+            (sum, item) => sum + item.price * item.quantity, 0
+        );
+
+        document.getElementById("order-feedback").textContent =
+            "Thank you, " + name + "! Your order total is " +
+            rupiah(total) + ". Thank you for choosing us to make someone's day a little more beautiful.";
+
+        localStorage.removeItem(CART_KEY);
+        this.reset();
+        renderCart();
+    }
+);
+
+renderCart();
+</script>
+
+</body>
+</html>
